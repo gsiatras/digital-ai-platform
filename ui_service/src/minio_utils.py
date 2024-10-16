@@ -1,4 +1,3 @@
-# app/minio_utils.py
 from minio import Minio
 from minio.error import S3Error
 import os
@@ -7,6 +6,7 @@ MINIO_ENDPOINT = os.getenv("MINIO_SERVICE_URL", "minio-service:9000")
 MINIO_ACCESS_KEY = 'platform'
 MINIO_SECRET_KEY = 'platform1234'
 MINIO_BUCKET = 'input-files'
+MINIO_MODELS_BUCKET = 'models'
 
 minio_client = Minio(
     MINIO_ENDPOINT,
@@ -16,11 +16,13 @@ minio_client = Minio(
 )
 
 def create_minio_bucket():
-    found = minio_client.bucket_exists(MINIO_BUCKET)
-    if not found:
-        minio_client.make_bucket(MINIO_BUCKET)
-        print(f"Created bucket: {MINIO_BUCKET}")
-    print('Bucket exists')
+    # Ensure both 'input-files' and 'models' buckets exist
+    for bucket in [MINIO_BUCKET, MINIO_MODELS_BUCKET]:
+        found = minio_client.bucket_exists(bucket)
+        if not found:
+            minio_client.make_bucket(bucket)
+            print(f"Created bucket: {bucket}")
+    print('Buckets exist')
 
 def check_file_existence(filename):
     try:
@@ -32,3 +34,12 @@ def check_file_existence(filename):
         else:
             raise
 
+def upload_file_to_minio(file, file_id, bucket_name):
+    file.seek(0)  # Ensure the file pointer is at the beginning
+    minio_client.put_object(
+        bucket_name,
+        file_id,
+        file,
+        len(file.read()),  # Size of the file
+        content_type=file.content_type  # Set content type (e.g., image/jpeg, application/octet-stream for .pt files)
+    )
