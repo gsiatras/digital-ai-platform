@@ -1,6 +1,7 @@
 from minio import Minio
 from minio.error import S3Error
 import os
+from io import BytesIO
 
 MINIO_ENDPOINT = os.getenv("MINIO_SERVICE_URL", "minio-service:9000")
 MINIO_ACCESS_KEY = 'platform'
@@ -34,12 +35,18 @@ def check_file_existence(filename):
         else:
             raise
 
+
 def upload_file_to_minio(file, file_id, bucket_name):
-    file.seek(0)  # Ensure the file pointer is at the beginning
+    file_data = file.read()  # Read file data once
+    file_size = len(file_data)  # Get file size
+    file.seek(0)  # Reset pointer to the beginning of the file
+
+    # Upload file to Minio
     minio_client.put_object(
         bucket_name,
         file_id,
-        file,
-        len(file.read()),  # Size of the file
-        content_type=file.content_type  # Set content type (e.g., image/jpeg, application/octet-stream for .pt files)
+        BytesIO(file_data),  # Use BytesIO to provide file data as a stream
+        file_size,           # Provide the file size
+        content_type=file.content_type  # Set content type, e.g., application/octet-stream for .pt files
     )
+

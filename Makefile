@@ -4,10 +4,10 @@ UI_DEPLOYMENT_FILE := kubernetes/deployments/ui-service-deployment.yaml
 UI_SERVICE_FILE := kubernetes/services/ui-service.yaml
 
 
-MINIO_STORAGE_FILE := kubernetes/storage/minio-storage-class.yaml
-MINIO_PVC_FILE := kubernetes/storage/minio-pvc.yaml
-MINIO_PV_FILE := kubernetes/storage/minio-pv.yaml
-MINIO_DEPLOYMENT_FILE := kubernetes/storage/minio-deployment.yaml
+MINIO_STORAGE_FILE := kubernetes/minio/minio-storage-class.yaml
+MINIO_PVC_FILE := kubernetes/minio/minio-pvc.yaml
+MINIO_PV_FILE := kubernetes/minio/minio-pv.yaml
+MINIO_DEPLOYMENT_FILE := kubernetes/minio/minio-deployment.yaml
 MINIO_SERVICE_FILE := kubernetes/services/minio-service.yaml
 
 
@@ -18,9 +18,9 @@ MINIO_SERVICE_FILE := kubernetes/services/minio-service.yaml
 .PHONY: deploy
 
 deploy:
-	kubectl create -f $(MINIO_STORAGE_FILE)
-	kubectl create -f $(MINIO_PV_FILE)
-	kubectl create -f $(MINIO_PVC_FILE)
+	# kubectl create -f $(MINIO_STORAGE_FILE)
+	# kubectl create -f $(MINIO_PV_FILE)
+	# kubectl create -f $(MINIO_PVC_FILE)
 	kubectl create -f $(MINIO_DEPLOYMENT_FILE)
 	kubectl create -f $(MINIO_SERVICE_FILE)
 	kubectl create -f $(UI_DEPLOYMENT_FILE)
