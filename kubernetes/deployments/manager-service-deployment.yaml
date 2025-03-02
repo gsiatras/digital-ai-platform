@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: manager-service
+  namespace: platform
+spec:
+  replicas: 1
+  serviceName: "manager-service"
+  selector:
+    matchLabels:
+      app: manager-service
+  template:
+    metadata:
+      labels:
+        app: manager-service
+    spec:
+      containers:
+      - name: manager-service
+        image: gsiatras13/digital_platform-manager_service:a1.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5050
+  volumeClaimTemplates:
+  - metadata:
+      name: manager-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 200Mi

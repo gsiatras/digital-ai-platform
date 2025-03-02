@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker-service
+  namespace: platform
+spec:
+  replicas: 1
+  serviceName: "worker-service"
+  selector:
+    matchLabels:
+      app: worker-service
+  template:
+    metadata:
+      labels:
+        app: worker-service
+    spec:
+      containers:
+      - name: worker-service
+        image: gsiatras13/digital_platform-worker_service:a1.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+  volumeClaimTemplates:
+  - metadata:
+      name: worker-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 200Mi

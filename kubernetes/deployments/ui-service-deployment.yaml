@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ui-service
 spec:
-  replicas: 3 
+  replicas: 1
   selector:
     matchLabels:
       app: ui-service
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: ui-service-container
-        image: gsiatras13/digital_platform-ui_service:a1.0
+        image: gsiatras13/digital_platform-ui_service:a1.1
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
