@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital AI Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0d1117; }
+        .card { background-color: #161b22; border-color: #30363d; }
+        .node-card { border-left: 4px solid #238636; }
+        .node-card.offline { border-left-color: #da3633; }
+        .table { --bs-table-bg: transparent; }
+        code { color: #79c0ff; }
+        .result-img { max-width: 100%; border-radius: 6px; }
+        #result-panel img { max-height: 340px; object-fit: contain; }
+        .badge-pill { font-size: 0.7rem; }
+    </style>
+</head>
+<body class="text-light">
+
+<nav class="navbar bg-black border-bottom border-secondary px-4 py-2">
+    <span class="navbar-brand fw-bold fs-5">Digital AI Platform</span>
+    <div class="d-flex align-items-center gap-3">
+        <span class="text-secondary small" id="last-refresh">—</span>
+        <span class="badge bg-success" id="cluster-badge">Cluster Online</span>
+    </div>
+</nav>
+
+<div class="container-fluid p-4">
+
+    <!-- Node Status -->
+    <p class="text-secondary text-uppercase small fw-bold mb-2">Nodes</p>
+    <div class="row g-3 mb-4" id="nodes-row">
+        <div class="col-md-4"><div class="card node-card p-3"><span class="text-secondary small">Loading...</span></div></div>
+        <div class="col-md-4"><div class="card node-card p-3"><span class="text-secondary small">Loading...</span></div></div>
+        <div class="col-md-4"><div class="card node-card p-3"><span class="text-secondary small">Loading...</span></div></div>
+    </div>
+
+    <!-- Controls + Result -->
+    <div class="row g-3 mb-4">
+
+        <!-- Controls -->
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Controls</div>
+                <div class="card-body">
+
+                    <!-- Upload Image -->
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">UPLOAD IMAGE</label>
+                        <div class="input-group input-group-sm">
+                            <input type="file" class="form-control" id="image-file" accept="image/*">
+                            <button class="btn btn-outline-primary" onclick="uploadImage()">Upload</button>
+                        </div>
+                        <div class="small mt-1" id="upload-image-status"></div>
+                    </div>
+
+                    <!-- Upload Model -->
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">UPLOAD MODEL (.pt)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="file" class="form-control" id="model-file" accept=".pt">
+                            <button class="btn btn-outline-primary" onclick="uploadModel()">Upload</button>
+                        </div>
+                        <div class="small mt-1" id="upload-model-status"></div>
+                    </div>
+
+                    <!-- Load Model -->
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">LOAD MODEL ON WORKERS</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="model-id" placeholder="e.g. yolov10n">
+                            <button class="btn btn-outline-warning" onclick="loadModel()">Load</button>
+                        </div>
+                        <div class="small mt-1" id="load-model-status"></div>
+                    </div>
+
+                    <!-- Submit Job -->
+                    <div>
+                        <label class="form-label small text-secondary">RUN DETECTION JOB</label>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" id="input-file-select">
+                                <option value="">Select image...</option>
+                            </select>
+                            <button class="btn btn-success" onclick="submitJob()">Run</button>
+                        </div>
+                        <div class="small mt-1" id="submit-status"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Result</span>
+                    <span class="badge bg-secondary" id="result-badge">Waiting</span>
+                </div>
+                <div class="card-body text-center d-flex flex-column justify-content-center" id="result-panel">
+                    <p class="text-secondary mb-0">Submit a detection job to see the result here.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Jobs Table -->
+    <p class="text-secondary text-uppercase small fw-bold mb-2">Job History</p>
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 small">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Input</th>
+                        <th>Worker</th>
+                        <th>Status</th>
+                        <th>Latency</th>
+                        <th>Energy (J)</th>
+                        <th>Carbon (gCO₂)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="jobs-tbody">
+                    <tr><td colspan="8" class="text-center text-secondary py-3">No jobs yet</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const NODE_MAP = {
+    'worker-a-service': { label: 'Worker A', node: 'minikube-m02' },
+    'worker-b-service': { label: 'Worker B', node: 'minikube-m03' },
+    'worker-c-service': { label: 'Worker C', node: 'minikube-m04' }
+};
+
+function setStatus(id, msg, color = 'success') {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `small mt-1 text-${color}`;
+}
+
+async function loadNodes() {
+    try {
+        const resp = await fetch('/api/nodes/status');
+        const data = await resp.json();
+        const row = document.getElementById('nodes-row');
+
+        if (!Array.isArray(data)) {
+            row.innerHTML = '<div class="col text-danger small">Failed to reach manager</div>';
+            return;
+        }
+
+        row.innerHTML = data.map(w => {
+            const info = NODE_MAP[w.worker_id] || { label: w.worker_id, node: '—' };
+            const online = !w.error;
+            const color = online ? '238636' : 'da3633';
+            const statusText = online ? (w.model_loaded || 'No model loaded') : 'Unreachable';
+            return `
+            <div class="col-md-4">
+                <div class="card node-card ${online ? '' : 'offline'} p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong>${info.label}</strong>
+                        <span class="badge" style="background:#${color}">${online ? 'Online' : 'Offline'}</span>
+                    </div>
+                    <div class="text-secondary small mb-2">${info.node}</div>
+                    <div class="small">
+                        <div>Model: <code>${statusText}</code></div>
+                        <div class="text-secondary mt-1">Avg Energy: <span class="text-warning fw-semibold">${w.avg_energy_j != null ? w.avg_energy_j.toFixed(2) + ' J' : '—'}</span></div>
+                        <div class="text-secondary">Carbon Intensity: <span class="text-info fw-semibold">${w.carbon_intensity != null ? w.carbon_intensity + ' gCO₂/kWh' : '—'}</span></div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('last-refresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    } catch (e) {
+        document.getElementById('cluster-badge').textContent = 'Unreachable';
+        document.getElementById('cluster-badge').className = 'badge bg-danger';
+    }
+}
+
+async function loadFiles() {
+    try {
+        const resp = await fetch('/api/files');
+        const files = await resp.json();
+        const sel = document.getElementById('input-file-select');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Select image...</option>' +
+            files.map(f => `<option value="${f}" ${f === cur ? 'selected' : ''}>${f}</option>`).join('');
+    } catch (e) { /* silent */ }
+}
+
+async function uploadImage() {
+    const file = document.getElementById('image-file').files[0];
+    if (!file) return alert('Select a file first');
+    const fd = new FormData();
+    fd.append('file', file);
+    setStatus('upload-image-status', 'Uploading...', 'secondary');
+    const resp = await fetch('/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (resp.ok) {
+        setStatus('upload-image-status', `✓ Uploaded: ${data.file_id}`, 'success');
+        loadFiles();
+    } else {
+        setStatus('upload-image-status', `✗ ${data.error}`, 'danger');
+    }
+}
+
+async function uploadModel() {
+    const file = document.getElementById('model-file').files[0];
+    if (!file) return alert('Select a .pt file first');
+    const fd = new FormData();
+    fd.append('file', file);
+    setStatus('upload-model-status', 'Uploading...', 'secondary');
+    const resp = await fetch('/upload_model', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (resp.ok) {
+        setStatus('upload-model-status', `✓ Uploaded: ${data.file_id}`, 'success');
+        document.getElementById('model-id').value = data.file_id.replace('.pt', '');
+    } else {
+        setStatus('upload-model-status', `✗ ${data.error}`, 'danger');
+    }
+}
+
+async function loadModel() {
+    const model_id = document.getElementById('model-id').value.trim();
+    if (!model_id) return alert('Enter a model ID');
+    setStatus('load-model-status', 'Loading model on all workers...', 'secondary');
+    const resp = await fetch('/load_model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_id })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+        setStatus('load-model-status', `✓ ${data.message || 'Job created'}`, 'success');
+        setTimeout(loadNodes, 3000);
+    } else {
+        setStatus('load-model-status', `✗ ${data.error}`, 'danger');
+    }
+}
+
+async function submitJob() {
+    const input_file = document.getElementById('input-file-select').value;
+    if (!input_file) return alert('Select an image first');
+
+    const badge = document.getElementById('result-badge');
+    const panel = document.getElementById('result-panel');
+
+    setStatus('submit-status', 'Running inference...', 'secondary');
+    badge.textContent = 'Running';
+    badge.className = 'badge bg-warning text-dark';
+    panel.innerHTML = `
+        <div class="spinner-border text-warning mb-3" role="status"></div>
+        <p class="text-secondary small mb-0">Running detection on ${input_file}...</p>`;
+
+    const start = Date.now();
+    try {
+        const resp = await fetch('/jobs/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input_file })
+        });
+        const data = await resp.json();
+        const elapsed = Date.now() - start;
+
+        if (resp.ok) {
+            const jid = data.job_id;
+            setStatus('submit-status', `✓ Done in ${elapsed}ms — job ${jid.slice(0, 8)}...`, 'success');
+            badge.textContent = 'Done';
+            badge.className = 'badge bg-success';
+            panel.innerHTML = `
+                <img src="/api/result_image?file_name=${jid}_annotated_image.png"
+                     class="result-img mb-3" alt="Annotated result"
+                     onerror="this.style.display='none'">
+                <div class="text-start small px-1">
+                    <div class="mb-1"><span class="text-secondary">Job ID:</span> <code>${jid}</code></div>
+                    <div class="mb-1"><span class="text-secondary">Input:</span> ${input_file}</div>
+                    <div class="mb-2"><span class="text-secondary">Latency:</span> ${elapsed} ms</div>
+                    <a href="/get_result_file?file_name=${jid}_results.json"
+                       class="btn btn-sm btn-outline-secondary">Download JSON</a>
+                </div>`;
+
+            loadJobs();
+        } else {
+            setStatus('submit-status', `✗ ${data.error}`, 'danger');
+            badge.textContent = 'Failed';
+            badge.className = 'badge bg-danger';
+            panel.innerHTML = `<p class="text-danger small">${data.error}</p>`;
+        }
+    } catch (e) {
+        setStatus('submit-status', `✗ Network error`, 'danger');
+        badge.textContent = 'Error';
+        badge.className = 'badge bg-danger';
+        panel.innerHTML = `<p class="text-danger small">${e.message}</p>`;
+    }
+}
+
+function statusBadge(s) {
+    const map = { completed: 'bg-success', running: 'bg-warning text-dark', failed: 'bg-danger' };
+    return `<span class="badge ${map[s] || 'bg-secondary'}">${s}</span>`;
+}
+
+function renderJobs(jobs) {
+    const tbody = document.getElementById('jobs-tbody');
+    if (!jobs || jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-secondary py-3">No jobs yet</td></tr>';
+        return;
+    }
+    tbody.innerHTML = jobs.map(j => `
+        <tr>
+            <td><code>${j.id.slice(0, 8)}…</code></td>
+            <td>${j.input_file}</td>
+            <td>${j.worker}</td>
+            <td>${statusBadge(j.status)}</td>
+            <td>${j.latency !== '—' ? j.latency + ' ms' : '—'}</td>
+            <td>${j.energy}</td>
+            <td>${j.carbon}</td>
+            <td>
+                <a href="/api/result_image?file_name=${j.id}_annotated_image.png"
+                   target="_blank" class="btn btn-sm btn-outline-info py-0">Image</a>
+            </td>
+        </tr>`).join('');
+}
+
+async function loadJobs() {
+    try {
+        const resp = await fetch('/api/jobs');
+        const jobs = await resp.json();
+        renderJobs(jobs);
+    } catch (e) { /* silent */ }
+}
+
+// Init
+loadNodes();
+loadFiles();
+loadJobs();
+setInterval(loadNodes, 15000);
+setInterval(loadFiles, 30000);
+setInterval(loadJobs, 20000);
+</script>
+</body>
+</html>

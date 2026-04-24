@@ -15,23 +15,26 @@ WORKER_SERVICE_FILE := kubernetes/services/worker-service.yaml
 MANAGER_SERVICE_DEPLOYMENT_FILE := kubernetes/deployments/manager-service-deployment.yaml
 MANAGER_SERVICE_FILE := kubernetes/services/manager-service.yaml
 
+POSTGRES_PVC_FILE := kubernetes/postgres/postgres-pvc.yaml
+POSTGRES_CONFIGMAP_FILE := kubernetes/postgres/postgres-configmap.yaml
+POSTGRES_DEPLOYMENT_FILE := kubernetes/postgres/postgres-deployment.yaml
+POSTGRES_SERVICE_FILE := kubernetes/postgres/postgres-service.yaml
+
 ROLES_CREATE_FILE := kubernetes/roles/job-creator-role.yaml
 JOB_LIST_FILE := kubernetes/roles/list-pods-role.yaml
 ROLES_ROLESBIND := kubernetes/roles/job-creator-rolebinding.yaml
 
 NAMESPACE := platform
 
-# Check if resource exists
-define check_resource_exists
-	$(shell kubectl get $(1) $(2) --namespace $(3) > /dev/null 2>&1 && echo "true" || echo "false")
-endef
-
 
 
 .PHONY: deploy
 deploy:
 	@echo "Deploying resources..."
-	
+
+	# Create namespace if it doesn't exist
+	@kubectl get namespace $(NAMESPACE) > /dev/null 2>&1 || kubectl create namespace $(NAMESPACE)
+
 	# Deploy Minio if not already deployed
 	@if ! kubectl get deployment minio-deployment --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deploying Minio..."; \
@@ -44,6 +47,17 @@ deploy:
 		echo "Minio is already deployed."; \
 	fi
 
+	# Deploy PostgreSQL if not already deployed
+	@if ! kubectl get deployment postgres-deployment --namespace $(NAMESPACE) > /dev/null 2>&1; then \
+		echo "Deploying PostgreSQL..."; \
+		kubectl create -f $(POSTGRES_PVC_FILE); \
+		kubectl create -f $(POSTGRES_CONFIGMAP_FILE); \
+		kubectl create -f $(POSTGRES_DEPLOYMENT_FILE); \
+		kubectl create -f $(POSTGRES_SERVICE_FILE); \
+	else \
+		echo "PostgreSQL is already deployed."; \
+	fi
+
 	# Deploy UI service if not already deployed
 	@if ! kubectl get deployment ui-deployment --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deploying UI service..."; \
@@ -53,13 +67,13 @@ deploy:
 		echo "UI service is already deployed."; \
 	fi
 
-	# Deploy Worker service if not already deployed
-	@if ! kubectl get statefulset worker-service --namespace $(NAMESPACE) > /dev/null 2>&1; then \
-		echo "Deploying Worker service..."; \
+	# Deploy Worker services if not already deployed
+	@if ! kubectl get statefulset worker-a --namespace $(NAMESPACE) > /dev/null 2>&1; then \
+		echo "Deploying Worker services (A, B, C)..."; \
 		kubectl create -f $(WORKER_SERVICE_DEPLOYMENT_FILE); \
 		kubectl create -f $(WORKER_SERVICE_FILE); \
 	else \
-		echo "Worker service is already deployed."; \
+		echo "Worker services are already deployed."; \
 	fi
 
 	# Deploy Manager service if not already deployed
@@ -76,16 +90,16 @@ deploy:
 		echo "Creating roles..."; \
 		kubectl create -f $(JOB_LIST_FILE); \
 	else \
-		echo "Roles do not exist."; \
+		echo "pod-lister-role already exists."; \
 	fi
-	
+
 	# Create Roles if not already created
 	@if ! kubectl get role job-creator-role --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Creating roles..."; \
 		kubectl create -f $(ROLES_CREATE_FILE); \
 		kubectl create -f $(ROLES_ROLESBIND); \
 	else \
-		echo "Roles already exist."; \
+		echo "job-creator-role already exists."; \
 	fi
 
 
@@ -93,6 +107,7 @@ deploy:
 .PHONY: clean
 clean:
 	@echo "Cleaning up resources..."
+
 	# Delete UI service if exists
 	@if kubectl get deployment ui-deployment --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deleting UI service resources..."; \
@@ -114,6 +129,17 @@ clean:
 		echo "Minio resources do not exist."; \
 	fi
 
+	# Delete PostgreSQL resources if exists
+	@if kubectl get deployment postgres-deployment --namespace $(NAMESPACE) > /dev/null 2>&1; then \
+		echo "Deleting PostgreSQL resources..."; \
+		kubectl delete -f $(POSTGRES_DEPLOYMENT_FILE); \
+		kubectl delete -f $(POSTGRES_SERVICE_FILE); \
+		kubectl delete -f $(POSTGRES_PVC_FILE); \
+		kubectl delete -f $(POSTGRES_CONFIGMAP_FILE); \
+	else \
+		echo "PostgreSQL resources do not exist."; \
+	fi
+
 	# Delete Manager service if exists
 	@if kubectl get statefulset manager-service --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deleting Manager service resources..."; \
@@ -123,8 +149,8 @@ clean:
 		echo "Manager service resources do not exist."; \
 	fi
 
-	# Delete Worker service if exists
-	@if kubectl get statefulset worker-service --namespace $(NAMESPACE) > /dev/null 2>&1; then \
+	# Delete Worker services if exists
+	@if kubectl get statefulset worker-a --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deleting Worker service resources..."; \
 		kubectl delete -f $(WORKER_SERVICE_FILE); \
 		kubectl delete -f $(WORKER_SERVICE_DEPLOYMENT_FILE); \
@@ -132,20 +158,18 @@ clean:
 		echo "Worker service resources do not exist."; \
 	fi
 
-	# Delete any additional roles if exists
+	# Delete roles if exist
 	@if kubectl get role job-creator-role --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deleting roles..."; \
 		kubectl delete -f $(ROLES_CREATE_FILE); \
 		kubectl delete -f $(ROLES_ROLESBIND); \
 	else \
-		echo "Roles do not exist."; \
+		echo "job-creator-role does not exist."; \
 	fi
 
-
-	# Delete any additional roles if exists
 	@if kubectl get role pod-lister-role --namespace $(NAMESPACE) > /dev/null 2>&1; then \
 		echo "Deleting roles..."; \
 		kubectl delete -f $(JOB_LIST_FILE); \
 	else \
-		echo "Roles do not exist."; \
+		echo "pod-lister-role does not exist."; \
 	fi

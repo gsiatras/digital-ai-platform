@@ -34,3 +34,11 @@ def check_file_existence(filename):
             return False
         else:
             raise
+
+
+def list_files_with_prefix(bucket_name, prefix):
+    """Return all object names in bucket_name that start with prefix."""
+    return [
+        obj.object_name
+        for obj in minio_client.list_objects(bucket_name, prefix=prefix, recursive=True)
+    ]

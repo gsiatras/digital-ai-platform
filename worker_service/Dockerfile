@@ -1,22 +1,22 @@
 FROM python:3.9-slim
 
-# Install dependencies including OpenGL libraries
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
     libglib2.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
 COPY ./testing_nn/requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
-RUN pip install --no-deps ultralytics
 
-# Copy application code
+# CPU-only torch (~200MB vs ~2GB for CUDA). No GPU in minikube.
+RUN pip install --upgrade pip && \
+    pip install torch==2.4.1+cpu torchvision==0.19.1+cpu \
+        --index-url https://download.pytorch.org/whl/cpu && \
+    pip install -r requirements.txt && \
+    pip install --no-deps ultralytics==8.3.73
+
 COPY testing_nn/ ./testing_nn/
 
-# Command to run your application
 CMD ["python", "testing_nn/app.py"]

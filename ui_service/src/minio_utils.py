@@ -69,12 +69,43 @@ def upload_file_to_minio(file, file_id, bucket_name):
         content_type=file.content_type  # Set content type, e.g., application/octet-stream for .pt files
     )
 
-def list_files_in_bucket(bucket_name):
+def list_files_in_bucket(bucket_name, prefix=None):
     try:
-        files = [obj.object_name for obj in minio_client.list_objects(bucket_name)]
+        files = [
+            obj.object_name
+            for obj in minio_client.list_objects(bucket_name, prefix=prefix, recursive=True)
+        ]
         return files
     except S3Error as e:
         raise Exception(f"Error listing files in bucket: {e}")
+
+
+def list_datasets():
+    """Return unique dataset names (top-level prefixes) from input-files bucket."""
+    seen = set()
+    try:
+        for obj in minio_client.list_objects(MINIO_BUCKET, recursive=True):
+            parts = obj.object_name.split("/", 1)
+            if len(parts) == 2:
+                seen.add(parts[0])
+        return sorted(seen)
+    except S3Error as e:
+        raise Exception(f"Error listing datasets: {e}")
+
+
+def upload_dataset_image(file, dataset_name, filename):
+    """Upload an image to input-files/{dataset_name}/{filename}."""
+    object_name = f"{dataset_name}/{filename}"
+    file_data = file.read()
+    file.seek(0)
+    minio_client.put_object(
+        MINIO_BUCKET,
+        object_name,
+        __import__("io").BytesIO(file_data),
+        len(file_data),
+        content_type=file.content_type,
+    )
+    return object_name
     
 
 def download_file_from_minio(bucket_name, file_name):

@@ -15,9 +15,14 @@ spec:
       labels:
         app: ui-service
     spec:
+      nodeSelector:
+        role: platform
       containers:
       - name: ui-service-container
         image: gsiatras13/digital_platform-ui_service:a1.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
+        env:
+        - name: POSTGRES_URL
+          value: "postgresql://platform:platform1234@postgres-service:5432/platform"

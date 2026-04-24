@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital AI Platform — Παρουσίαση Προόδου</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    position: absolute;
+    inset: 0;
+    padding: 48px 68px 62px;
+    flex-direction: column;
+    animation: fadeIn .2s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+
+  #nav {
+    position: fixed;
+    bottom: 22px; right: 36px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 99;
+  }
+  #nav button {
+    background: #21262d; border: 1px solid #30363d;
+    color: #e6edf3; padding: 7px 16px; border-radius: 6px;
+    cursor: pointer; font-size: 14px; transition: background .15s;
+  }
+  #nav button:hover { background: #30363d; }
+  #counter { color: #8b949e; font-size: 13px; min-width: 52px; text-align: center; }
+
+  #progress {
+    position: fixed; top: 0; left: 0;
+    height: 3px; background: #58a6ff;
+    transition: width .2s; z-index: 100;
+  }
+
+  .label {
+    font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #58a6ff;
+    font-weight: 600; margin-bottom: 10px;
+  }
+  h1 { font-size: 42px; font-weight: 700; line-height: 1.15; }
+  h2 { font-size: 27px; font-weight: 700; margin-bottom: 18px; }
+  h3 { font-size: 16px; font-weight: 600; margin-bottom: 7px; color: #79c0ff; }
+  p, li { font-size: 14.5px; line-height: 1.65; color: #c9d1d9; }
+  ul { padding-left: 18px; }
+  li { margin-bottom: 4px; }
+
+  .cols { display: flex; gap: 24px; flex: 1; min-height: 0; }
+  .col  { flex: 1; }
+
+  .card {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 10px; padding: 16px 20px;
+  }
+  .card + .card { margin-top: 10px; }
+  .card-green  { border-left: 4px solid #238636; }
+  .card-red    { border-left: 4px solid #da3633; }
+  .card-blue   { border-left: 4px solid #58a6ff; }
+  .card-yellow { border-left: 4px solid #d29922; }
+  .card-purple { border-left: 4px solid #bc8cff; }
+
+  .formula {
+    background: #0d1117; border: 1px solid #30363d;
+    border-radius: 8px; padding: 14px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px; color: #79c0ff;
+    margin: 10px 0; text-align: center; line-height: 2.2;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+  th {
+    background: #21262d; border: 1px solid #30363d;
+    padding: 7px 11px; text-align: left;
+    font-size: 11px; letter-spacing: .8px;
+    text-transform: uppercase; color: #8b949e;
+  }
+  td { border: 1px solid #30363d; padding: 7px 11px; color: #c9d1d9; }
+  tr:nth-child(even) td { background: #161b22; }
+
+  .badge {
+    display: inline-block; padding: 2px 9px;
+    border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .badge-green  { background: #1f4a2e; color: #3fb950; }
+  .badge-red    { background: #4a1f1f; color: #f85149; }
+  .badge-yellow { background: #4a3800; color: #d29922; }
+
+  .arrow { font-size: 16px; color: #484f58; padding: 0 4px; flex-shrink: 0; }
+  code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #79c0ff; }
+
+  .slide-title { background: radial-gradient(ellipse at 30% 50%, #0c2a4a 0%, #0d1117 65%); }
+  .subtitle { font-size: 17px; color: #8b949e; margin-top: 14px; line-height: 1.6; }
+  .meta     { font-size: 13px; color: #484f58; margin-top: 28px; }
+
+  /* ── Architecture diagram ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .node-box {
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 14px 12px;
+    background: #161b22;
+    text-align: center;
+  }
+  .node-box.ctrl { border-color: #58a6ff; }
+  .node-box.wkr  { border-color: #238636; }
+  .node-title { font-weight: 700; font-size: 14px; color: #e6edf3; }
+  .node-sub   { font-size: 11px; color: #8b949e; margin: 3px 0 8px; }
+  .node-svc   { font-size: 11.5px; color: #58a6ff; line-height: 1.8; }
+  .node-svc.green { color: #3fb950; }
+  .ci-badge {
+    display: inline-block; margin-top: 6px;
+    padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  /* ── Comm diagram ── */
+  .comm-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+  }
+  .comm-box {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .comm-label {
+    font-size: 11px;
+    color: #8b949e;
+    padding: 0 10px;
+    flex: 1;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div class="deck">
+
+  <!-- ══════ 1. TITLE ══════ -->
+  <div class="slide slide-title active">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div class="label">Πτυχιακή Εργασία — Παρουσίαση Προόδου</div>
+      <h1>Digital AI Platform</h1>
+      <h1 style="color:#58a6ff">Energy-Aware<br>Inference Scheduling</h1>
+      <p class="subtitle">
+        Υλοποίηση ενεργειακής παρακολούθησης, μοντέλου άνθρακα<br>
+        και κατανεμημένης εκτέλεσης inference σε Kubernetes cluster
+      </p>
+      <p class="meta">Γεώργιος Σιάτρας · Απρίλιος 2026</p>
+    </div>
+  </div>
+
+  <!-- ══════ 2. ΤΙ ΚANAΜΕ ══════ -->
+  <div class="slide">
+    <div class="label">Επισκόπηση</div>
+    <h2>Τι Υλοποιήσαμε</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="card card-blue" style="margin-bottom:10px">
+          <h3>1. Αρχιτεκτονική Πλατφόρμας</h3>
+          <p>Multi-node Kubernetes cluster με ξεχωριστό service ανά ρόλο. Manager ως κεντρικός orchestrator, 3 worker nodes για inference, shared object storage.</p>
+        </div>
+        <div class="card card-green" style="margin-bottom:10px">
+          <h3>2. Ενεργειακή Παρακολούθηση</h3>
+          <p>Διερεύνηση RAPL → αποτυχία σε Docker containers → εναλλακτική λύση με <strong>Kepler / eBPF</strong>. Deployment ως DaemonSet σε κάθε κόμβο.</p>
+        </div>
+        <div class="card card-purple">
+          <h3>3. Μοντέλο Ισχύος & Άνθρακα</h3>
+          <p>Γραμμικό μοντέλο υπολογισμού ενέργειας ανά inference job. Προσομοίωση ετερογενούς carbon intensity ανά κόμβο.</p>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card card-yellow" style="margin-bottom:10px">
+          <h3>4. PostgreSQL Persistence</h3>
+          <p>Σχεδιασμός και deployment βάσης δεδομένων. Αποθήκευση ιστορικού jobs με μετρικές latency, energy_joules, carbon_gco2.</p>
+        </div>
+        <div class="card" style="margin-bottom:10px">
+          <h3>5. Round-Robin Scheduler</h3>
+          <p>Thread-safe κατανομή εργασιών στους 3 workers. Κεντρικός Manager με lock-based index για ταυτόχρονες αιτήσεις.</p>
+        </div>
+        <div class="card">
+          <h3>6. Web Dashboard</h3>
+          <p>Real-time UI: κατάσταση κόμβων, φορτωμένο μοντέλο, avg energy & carbon intensity ανά worker, πλήρες job history.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 3. ΑΡΧΙΤΕΚΤΟΝΙΚΗ ══════ -->
+  <div class="slide">
+    <div class="label">Αρχιτεκτονική</div>
+    <h2>Δομή Εφαρμογής & Επικοινωνία</h2>
+
+    <!-- Node grid -->
+    <div class="arch-grid">
+      <div class="node-box ctrl">
+        <div style="font-size:20px;margin-bottom:4px">🖥️</div>
+        <div class="node-title">minikube</div>
+        <div class="node-sub">Control Plane Node</div>
+        <div class="node-svc">
+          UI Service :8080<br>
+          Manager Service :5050<br>
+          MinIO :9000<br>
+          PostgreSQL :5432<br>
+          Kepler :9102
+        </div>
+      </div>
+      <div class="node-box wkr">
+        <div style="font-size:20px;margin-bottom:4px">⚙️</div>
+        <div class="node-title">minikube-m02</div>
+        <div class="node-sub">Worker A</div>
+        <div class="node-svc green">
+          Worker Service :5000<br>
+          Kepler :9102
+        </div>
+        <div class="ci-badge" style="background:#4a3800;color:#d29922">350 gCO₂/kWh</div>
+      </div>
+      <div class="node-box wkr">
+        <div style="font-size:20px;margin-bottom:4px">⚙️</div>
+        <div class="node-title">minikube-m03</div>
+        <div class="node-sub">Worker B</div>
+        <div class="node-svc green">
+          Worker Service :5000<br>
+          Kepler :9102
+        </div>
+        <div class="ci-badge" style="background:#4a1f1f;color:#f85149">600 gCO₂/kWh</div>
+      </div>
+      <div class="node-box wkr">
+        <div style="font-size:20px;margin-bottom:4px">⚙️</div>
+        <div class="node-title">minikube-m04</div>
+        <div class="node-sub">Worker C</div>
+        <div class="node-svc green">
+          Worker Service :5000<br>
+          Kepler :9102
+        </div>
+        <div class="ci-badge" style="background:#1f4a2e;color:#3fb950">100 gCO₂/kWh</div>
+      </div>
+    </div>
+
+    <!-- Communication patterns -->
+    <p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8b949e;margin-bottom:8px">Επικοινωνία μεταξύ services — REST HTTP εντός cluster</p>
+    <div class="cols" style="flex:0;gap:16px">
+      <div style="flex:1">
+        <div class="comm-row">
+          <div class="comm-box" style="background:#1d3557;color:#79c0ff">Browser</div>
+          <div class="comm-label">HTTP GET/POST → NodePort 31017</div>
+          <div class="comm-box" style="background:#1d3557;color:#79c0ff">UI Service</div>
+        </div>
+        <div class="comm-row">
+          <div class="comm-box" style="background:#1d3557;color:#79c0ff">UI Service</div>
+          <div class="comm-label">REST → ClusterIP :5050</div>
+          <div class="comm-box" style="background:#21262d;color:#d29922">Manager</div>
+        </div>
+        <div class="comm-row">
+          <div class="comm-box" style="background:#21262d;color:#d29922">Manager</div>
+          <div class="comm-label">POST /predict → ClusterIP :5000</div>
+          <div class="comm-box" style="background:#1f4a2e;color:#3fb950">Worker A/B/C</div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div class="comm-row">
+          <div class="comm-box" style="background:#1f4a2e;color:#3fb950">Worker</div>
+          <div class="comm-label">GET/PUT object → MinIO :9000</div>
+          <div class="comm-box" style="background:#2d2040;color:#bc8cff">MinIO</div>
+        </div>
+        <div class="comm-row">
+          <div class="comm-box" style="background:#21262d;color:#d29922">Manager</div>
+          <div class="comm-label">INSERT/UPDATE → PostgreSQL :5432</div>
+          <div class="comm-box" style="background:#2d2040;color:#bc8cff">PostgreSQL</div>
+        </div>
+        <div class="comm-row">
+          <div class="comm-box" style="background:#21262d;color:#d29922">Manager</div>
+          <div class="comm-label">HTTP scrape → hostPort 9102</div>
+          <div class="comm-box" style="background:#2d2040;color:#bc8cff">Kepler (per node)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 4. RAPL vs KEPLER ══════ -->
+  <div class="slide">
+    <div class="label">Ενεργειακή Παρακολούθηση</div>
+    <h2>RAPL → Kepler / eBPF</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="card card-red">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="color:#f85149;margin:0">RAPL</h3>
+            <span class="badge badge-red">✗ Απέτυχε</span>
+          </div>
+          <ul>
+            <li>Μετρητής ενέργειας μέσω <code>/sys/class/powercap/intel-rapl/</code></li>
+            <li>Αρχικά φάνηκε να λειτουργεί — αρχείο προσβάσιμο μέσα στα containers</li>
+            <li><strong>Πρόβλημα:</strong> ο μετρητής παρέμενε στατικός — ίδια τιμή πριν και μετά το inference</li>
+            <li>Αιτία: Docker containers χωρίς πλήρη MSR πρόσβαση δεν λαμβάνουν updates από τον host kernel</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3>Πειραματική επιβεβαίωση</h3>
+          <div style="font-family:monospace;font-size:13px;color:#79c0ff;line-height:2;margin-top:8px">
+            t=0s &nbsp;→ energy_uj = <span style="color:#f85149">54,832,456</span><br>
+            &lt;10s inference running&gt;<br>
+            t=10s → energy_uj = <span style="color:#f85149">54,832,456</span> ← ίδιο!
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card card-green">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="color:#3fb950;margin:0">Kepler + eBPF</h3>
+            <span class="badge badge-green">✓ Λειτουργεί</span>
+          </div>
+          <ul>
+            <li>CNCF open-source — Kubernetes Efficient Power Level Exporter</li>
+            <li>Χρησιμοποιεί <strong>eBPF probes</strong> για per-container CPU time από τον host kernel</li>
+            <li>Λειτουργεί ανεξάρτητα από Docker isolation — βλέπει απευθείας τα cgroup events</li>
+            <li>Deployment ως <strong>DaemonSet</strong> (1 pod / κόμβο), <code>privileged: true</code>, <code>hostNetwork: true</code></li>
+            <li>Εκθέτει Prometheus metrics: <code>NODE_IP:9102/metrics</code></li>
+            <li>Μετρική: <code>kepler_container_bpf_cpu_time_ms_total</code></li>
+          </ul>
+        </div>
+
+        <div class="card card-blue" style="margin-top:12px">
+          <h3>Scraping χωρίς Prometheus/Grafana</h3>
+          <p style="margin-bottom:8px">O Manager κάνει direct HTTP scrape πριν και μετά κάθε job:</p>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <div style="padding:7px 12px;border-radius:6px;background:#21262d;border:1px solid #d29922;color:#d29922;font-size:13px">Manager</div>
+            <div class="arrow">→ HTTP →</div>
+            <div style="padding:7px 12px;border-radius:6px;background:#21262d;border:1px solid #238636;color:#3fb950;font-size:13px">Kepler<br><small>:9102/metrics</small></div>
+            <div class="arrow">→ parse →</div>
+            <div style="padding:7px 12px;border-radius:6px;background:#21262d;border:1px solid #bc8cff;color:#bc8cff;font-size:13px">Δt<sub>cpu</sub> (ms)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 5. ΜΟΝΤΕΛΑ ══════ -->
+  <div class="slide">
+    <div class="label">Μαθηματικά Μοντέλα</div>
+    <h2>Ισχύς & Εκπομπές Άνθρακα</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Μοντέλο Ισχύος</h3>
+        <p style="font-size:13px;color:#8b949e;margin-bottom:4px">Βάση: energy-proportional computing (Barroso &amp; Hölzle, 2007)</p>
+        <div class="formula">
+          E<sub>job</sub> = (Δt<sub>cpu</sub> / 1000) · P<sub>core</sub><br>
+          <span style="font-size:13px;color:#8b949e">P<sub>core</sub> = TDP / N<sub>cores</sub> = 120W / 8 = <strong style="color:#79c0ff">15 W</strong></span>
+        </div>
+        <table>
+          <tr><th>Παράμετρος</th><th>Τιμή</th></tr>
+          <tr><td>Δt<sub>cpu</sub></td><td>eBPF CPU time delta (ms)</td></tr>
+          <tr><td>TDP (AMD Ryzen 9 9800X3D)</td><td>120 W</td></tr>
+          <tr><td>N<sub>cores</sub></td><td>8</td></tr>
+          <tr><td>P<sub>core</sub></td><td>15 W</td></tr>
+        </table>
+        <div class="card" style="margin-top:10px">
+          <p style="font-size:13px;color:#8b949e"><strong style="color:#c9d1d9">Εγκυρότητα:</strong> Το eBPF μετράει ακριβώς το cgroup του container. Υποθέτουμε u≈1 κατά τον υπολογισμό — συντηρητική ανώτερη εκτίμηση.</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <h3>Μοντέλο Άνθρακα</h3>
+        <p style="font-size:13px;color:#8b949e;margin-bottom:4px">Ref: Radovanović et al. (2022), ElectricityMaps (2024)</p>
+        <div class="formula">
+          C<sub>job</sub> = (E<sub>job</sub> / 3,600,000) · I<sub>node</sub>
+        </div>
+        <table>
+          <tr><th>Κόμβος</th><th>Προσομοίωση</th><th>I (gCO₂/kWh)</th></tr>
+          <tr>
+            <td>Worker A</td><td>EU average</td>
+            <td><span class="badge badge-yellow">350</span></td>
+          </tr>
+          <tr>
+            <td>Worker B</td><td>Coal-heavy (Πολωνία)</td>
+            <td><span class="badge badge-red">600</span></td>
+          </tr>
+          <tr>
+            <td>Worker C</td><td>Renewables (Νορβηγία)</td>
+            <td><span class="badge badge-green">100</span></td>
+          </tr>
+        </table>
+        <div class="card card-yellow" style="margin-top:10px">
+          <p style="font-size:13px"><strong>Γιατί προσομοίωση;</strong> Όλοι οι κόμβοι τρέχουν στο ίδιο μηχάνημα. Η ετερογένεια carbon intensity προσομοιώνει geo-distributed cluster — αναγκαία προϋπόθεση για carbon-aware scheduling.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 6. POSTGRESQL ══════ -->
+  <div class="slide">
+    <div class="label">Persistence Layer</div>
+    <h2>Βάση Δεδομένων PostgreSQL</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="card card-green">
+          <h3>Πίνακας <code>jobs</code></h3>
+          <table style="margin-top:8px">
+            <tr><th>Στήλη</th><th>Τύπος</th><th>Περιγραφή</th></tr>
+            <tr><td>id</td><td>UUID PK</td><td>Μοναδικό ID εργασίας</td></tr>
+            <tr><td>input_file</td><td>TEXT</td><td>MinIO object path</td></tr>
+            <tr><td>worker_assigned</td><td>TEXT</td><td>Κόμβος εκτέλεσης</td></tr>
+            <tr><td>status</td><td>TEXT</td><td>running / completed / failed</td></tr>
+            <tr><td>latency_ms</td><td>FLOAT</td><td>End-to-end χρόνος (ms)</td></tr>
+            <tr><td><strong>energy_joules</strong></td><td>FLOAT</td><td>Ενέργεια από eBPF model (J)</td></tr>
+            <tr><td><strong>carbon_gco2</strong></td><td>FLOAT</td><td>Εκπομπές CO₂ (gram)</td></tr>
+            <tr><td>detections_count</td><td>INT</td><td>Ανιχνευθέντα αντικείμενα</td></tr>
+            <tr><td>result_path</td><td>TEXT</td><td>MinIO path annotated image</td></tr>
+            <tr><td>created_at / completed_at</td><td>TIMESTAMP</td><td>Χρόνοι έναρξης / λήξης</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="col" style="display:flex;flex-direction:column;gap:12px">
+        <div class="card card-blue">
+          <h3>Deployment</h3>
+          <ul style="margin-top:6px">
+            <li>Kubernetes <strong>Deployment</strong> + <strong>PersistentVolumeClaim</strong></li>
+            <li>Init SQL μέσω <strong>ConfigMap</strong> — εκτελείται αυτόματα στο πρώτο startup</li>
+            <li>ClusterIP service — προσβάσιμο μόνο εντός cluster</li>
+            <li>Σύνδεση μέσω <code>psycopg2</code> + connection string από env var</li>
+          </ul>
+        </div>
+
+        <div class="card card-yellow">
+          <h3>Ροή εγγραφής ανά job</h3>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:#58a6ff;font-weight:700;font-size:13px">1.</span>
+              <p style="margin:0;font-size:13px"><code>create_job()</code> — status: <em>running</em></p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:#58a6ff;font-weight:700;font-size:13px">2.</span>
+              <p style="margin:0;font-size:13px">Worker εκτελεί inference</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:#58a6ff;font-weight:700;font-size:13px">3.</span>
+              <p style="margin:0;font-size:13px"><code>complete_job()</code> — latency + energy + carbon + detections</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:#f85149;font-weight:700;font-size:13px">✗</span>
+              <p style="margin:0;font-size:13px"><code>fail_job()</code> — σε περίπτωση σφάλματος</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Dashboard query</h3>
+          <p style="font-size:13px;margin-top:6px">Το UI ανακτά τα τελευταία 100 jobs μέσω <code>/api/jobs</code> και εμφανίζει latency, energy, carbon, status για κάθε εργασία.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 7. ROUND-ROBIN ══════ -->
+  <div class="slide">
+    <div class="label">Scheduling</div>
+    <h2>Round-Robin Scheduler</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Αλγόριθμος</h3>
+        <div class="card" style="font-family:monospace;font-size:13.5px;color:#79c0ff;line-height:2;margin-bottom:12px">
+          _rr_index = 0<br>
+          _rr_lock = threading.Lock()<br><br>
+          def _next_worker():<br>
+          &nbsp;&nbsp;with _rr_lock:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;host = WORKERS[_rr_index % 3]<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;_rr_index += 1<br>
+          &nbsp;&nbsp;return host
+        </div>
+        <div class="card">
+          <ul>
+            <li><strong>Thread-safe</strong> — Lock για ταυτόχρονα HTTP requests</li>
+            <li>Κατανέμει ισόποσα: A → B → C → A → ...</li>
+            <li>Αγνοεί φόρτο, ενέργεια, carbon intensity — baseline αλγόριθμος</li>
+          </ul>
+        </div>
+
+        <h3 style="margin-top:16px">Κατανομή 6 εργασιών</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #238636;color:#3fb950;font-size:13px;text-align:center">Job 1<br><small>Worker A</small></div>
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #d29922;color:#d29922;font-size:13px;text-align:center">Job 2<br><small>Worker B</small></div>
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #58a6ff;color:#79c0ff;font-size:13px;text-align:center">Job 3<br><small>Worker C</small></div>
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #238636;color:#3fb950;font-size:13px;text-align:center">Job 4<br><small>Worker A</small></div>
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #d29922;color:#d29922;font-size:13px;text-align:center">Job 5<br><small>Worker B</small></div>
+          <div style="padding:8px 12px;border-radius:6px;background:#21262d;border:1px solid #58a6ff;color:#79c0ff;font-size:13px;text-align:center">Job 6<br><small>Worker C</small></div>
+        </div>
+      </div>
+
+      <div class="col">
+        <h3>Ροή εκτέλεσης job (end-to-end)</h3>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#58a6ff;font-weight:700;min-width:18px">1</span>
+            <p style="margin:0;font-size:13.5px">UI → <code>POST /initialize_job</code> → Manager</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#58a6ff;font-weight:700;min-width:18px">2</span>
+            <p style="margin:0;font-size:13.5px">Manager: <code>_next_worker()</code> → επιλογή κόμβου</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#d29922;font-weight:700;min-width:18px">3</span>
+            <p style="margin:0;font-size:13.5px">Kepler scrape <strong>πριν</strong> → <code>cpu_time_before</code></p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#3fb950;font-weight:700;min-width:18px">4</span>
+            <p style="margin:0;font-size:13.5px">Manager → <code>POST /predict</code> → Worker → inference → MinIO</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#d29922;font-weight:700;min-width:18px">5</span>
+            <p style="margin:0;font-size:13.5px">Kepler scrape <strong>μετά</strong> → Δt<sub>cpu</sub> → E (J) → C (gCO₂)</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 14px">
+            <span style="color:#bc8cff;font-weight:700;min-width:18px">6</span>
+            <p style="margin:0;font-size:13.5px">PostgreSQL: <code>complete_job()</code> — αποθήκευση μετρικών</p>
+          </div>
+        </div>
+
+        <div class="card card-yellow" style="margin-top:12px">
+          <p style="font-size:13px"><strong>Βασική γραμμή (baseline):</strong> Ο Round-Robin δεν βελτιστοποιεί — κατανέμει απλά ισόποσα. Χρησιμεύει ως σημείο σύγκρισης για τον μελλοντικό DQN scheduler.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 8. ΕΠΟΜΕΝΑ ══════ -->
+  <div class="slide">
+    <div class="label">Επόμενα Βήματα</div>
+    <h2>Τι Ακολουθεί</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="card card-green" style="margin-bottom:12px">
+          <h3>✓ Ολοκληρωμένο</h3>
+          <ul style="margin-top:8px">
+            <li>Multi-node Kubernetes cluster (4 κόμβοι)</li>
+            <li>3 Worker Services για inference (Flask + YOLO)</li>
+            <li>Manager: Round-Robin scheduling + Kepler integration</li>
+            <li>Kepler DaemonSet + eBPF energy monitoring</li>
+            <li>Γραμμικό μοντέλο ισχύος & carbon model</li>
+            <li>PostgreSQL persistence (jobs με energy/carbon)</li>
+            <li>Web Dashboard: nodes, jobs, energy/carbon stats</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card card-yellow" style="margin-bottom:12px">
+          <h3>⟳ Άμεσα επόμενα</h3>
+          <ul style="margin-top:8px">
+            <li>Dataset management UI (upload εικόνων ανά dataset)</li>
+            <li>Σύστημα πειραμάτων — εκτέλεση dataset ως batch jobs</li>
+            <li>Experiment history & stats στο dashboard</li>
+            <li>MinIO PVC — persistence μοντέλου μετά restart</li>
+          </ul>
+        </div>
+        <div class="card card-blue">
+          <h3>◻ Μακροπρόθεσμα</h3>
+          <ul style="margin-top:8px">
+            <li><strong>DQN Agent</strong> — αντικατάσταση Round-Robin</li>
+            <li>State: CPU util, carbon intensity, queue length</li>
+            <li>Reward: minimize gCO₂ με SLA constraint (latency)</li>
+            <li>Comparative evaluation: RR vs DQN</li>
+            <li>Ανάλυση αποτελεσμάτων & συγγραφή πτυχιακής</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div id="nav">
+  <button onclick="prev()">← Πίσω</button>
+  <span id="counter">1 / 8</span>
+  <button onclick="next()">Μπρος →</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let cur = 0;
+
+function show(n) {
+  slides[cur].classList.remove('active');
+  cur = (n + total) % total;
+  slides[cur].classList.add('active');
+  document.getElementById('counter').textContent = (cur+1) + ' / ' + total;
+  document.getElementById('progress').style.width = ((cur+1)/total*100) + '%';
+}
+function next() { show(cur+1); }
+function prev() { show(cur-1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); next(); }
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')                { e.preventDefault(); prev(); }
+});
+
+document.getElementById('progress').style.width = (1/total*100)+'%';
+</script>
+</body>
+</html>

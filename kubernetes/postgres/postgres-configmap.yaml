@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-config
+  namespace: platform
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS experiments (
+      id UUID PRIMARY KEY,
+      name TEXT,
+      dataset TEXT,
+      algorithm TEXT DEFAULT 'round-robin',
+      status TEXT DEFAULT 'running',
+      total_jobs INT DEFAULT 0,
+      completed_jobs INT DEFAULT 0,
+      failed_jobs INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      completed_at TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS jobs (
+      id UUID PRIMARY KEY,
+      experiment_id UUID REFERENCES experiments(id),
+      input_file TEXT,
+      model_id TEXT,
+      worker_assigned TEXT,
+      status TEXT,
+      latency_ms FLOAT,
+      energy_joules FLOAT,
+      carbon_gco2 FLOAT,
+      detections_count INT,
+      result_path TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      completed_at TIMESTAMP
+    );

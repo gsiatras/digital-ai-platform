@@ -23,34 +23,38 @@ RESULTS_BUCKET = "result-files"
 MODEL_NAME = os.getenv("MODEL_NAME", "yolov10n.pt")
 
 # Global variable to track model loading status and the model
-model = None  # Define model at the global scope
-model_loading = False  # Add a flag to prevent concurrent loading
-model_lock = threading.Lock()  # Add a lock for thread safety
+model = None
+model_name_loaded = None
+model_loading = False
+model_lock = threading.Lock()
 
 
-# Function to load the model (can be called multiple times)
+def _do_load_model(model_name):
+    """Load a specific model file from MinIO into memory. Caller must hold model_lock."""
+    global model, model_name_loaded, model_loading
+    model_loading = True
+    try:
+        logger.info(f"Downloading {model_name} from MinIO.")
+        model_data = download_model_from_minio(MODEL_BUCKET, model_name)
+        logger.info("Loading model into memory.")
+        model = load_model(model_data)
+        model_name_loaded = model_name
+        logger.info(f"Model {model_name} loaded successfully.")
+    except Exception as e:
+        logger.error(f"Failed to load model {model_name}: {e}")
+        model = None
+        model_name_loaded = None
+    finally:
+        model_loading = False
+
+
 def load_the_model():
+    """Load the default MODEL_NAME if not already loaded."""
     global model, model_loading
-    with model_lock:  # Ensure thread safety
+    with model_lock:
         if model is not None or model_loading:
-            logger.info("Model is already loaded or loading. Skipping reload.")
-            return  # Do nothing if model is already loaded or loading
-
-        model_loading = True
-        try:
-            logger.info("Starting model download from MinIO.")
-            model_path = download_model_from_minio(MODEL_BUCKET, MODEL_NAME)
-            logger.info(f"Model downloaded to: {model_path}")
-
-            logger.info("Loading model into memory.")
-            model = load_model(model_path)
-            logger.info("Model loaded successfully.")
-        except Exception as e:
-            logger.error(f"An error occurred while loading the model: {e}")
-            model = None  # Ensure model is None if loading fails
-        finally:
-            model_loading = False
-            logger.info("Model loading process completed.")
+            return
+        _do_load_model(MODEL_NAME)
 
 
 # Initial model loading attempt
@@ -81,10 +85,30 @@ def get_model():
             return jsonify({"error": "Model not loaded"}), 500  # Return error if still not loaded
         else:
             logger.info("Model reloaded successfully.")
-            return jsonify({"message": "Model reloaded successfully", "model_loaded": MODEL_NAME}), 200
+            return jsonify({"message": "Model reloaded successfully", "model_loaded": model_name_loaded}), 200
 
     logger.info("Model is already loaded.")
-    return jsonify({"model_loaded": MODEL_NAME}), 200
+    return jsonify({"model_loaded": model_name_loaded}), 200
+
+
+@app.route('/load_model', methods=['POST'])
+def load_model_endpoint():
+    """Load a specific model by name from MinIO, replacing any currently loaded model."""
+    global model, model_name_loaded, model_loading
+    model_name = request.json.get('model_name') if request.json else None
+    if not model_name:
+        return jsonify({"error": "model_name required"}), 400
+
+    with model_lock:
+        if model_loading:
+            return jsonify({"error": "Model loading already in progress"}), 409
+        model = None
+        model_name_loaded = None
+        _do_load_model(model_name)
+
+    if model is None:
+        return jsonify({"error": f"Failed to load model {model_name}"}), 500
+    return jsonify({"message": f"Model {model_name} loaded", "model_loaded": model_name}), 200
 
 
 @app.route('/predict', methods=['POST'])

@@ -1,25 +1,99 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: worker-service
+  name: worker-a
   namespace: platform
 spec:
   replicas: 1
-  serviceName: "worker-service"
+  serviceName: "worker-a-service"
   selector:
     matchLabels:
-      app: worker-service
+      app: worker-a
   template:
     metadata:
       labels:
-        app: worker-service
+        app: worker-a
+        role: worker
     spec:
+      nodeSelector:
+        worker-id: A
       containers:
       - name: worker-service
         image: gsiatras13/digital_platform-worker_service:a1.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
+  volumeClaimTemplates:
+  - metadata:
+      name: worker-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 200Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker-b
+  namespace: platform
+spec:
+  replicas: 1
+  serviceName: "worker-b-service"
+  selector:
+    matchLabels:
+      app: worker-b
+  template:
+    metadata:
+      labels:
+        app: worker-b
+        role: worker
+    spec:
+      nodeSelector:
+        worker-id: B
+      containers:
+      - name: worker-service
+        image: gsiatras13/digital_platform-worker_service:a1.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+  volumeClaimTemplates:
+  - metadata:
+      name: worker-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 200Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker-c
+  namespace: platform
+spec:
+  replicas: 1
+  serviceName: "worker-c-service"
+  selector:
+    matchLabels:
+      app: worker-c
+  template:
+    metadata:
+      labels:
+        app: worker-c
+        role: worker
+    spec:
+      nodeSelector:
+        worker-id: C
+      containers:
+      - name: worker-service
+        image: gsiatras13/digital_platform-worker_service:a1.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        env:
+        - name: MINIO_SERVICE_URL
+          value: "192.168.49.2:30000"
   volumeClaimTemplates:
   - metadata:
       name: worker-data

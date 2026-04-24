@@ -18,16 +18,14 @@ minio_client = Minio(
 
 def download_model_from_minio(bucket_name, object_name):
     """Downloads a model from Minio and returns the data as a BytesIO stream."""
+    response = None
     try:
-        # Get data of an object.
         response = minio_client.get_object(bucket_name, object_name)
-        # Read the entire object data into a BytesIO object
         model_data = io.BytesIO(response.read())
         return model_data
     except S3Error as err:
         print(err)
         raise
-
     finally:
         if response:
             response.close()
